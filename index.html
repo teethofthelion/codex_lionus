@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Codex Lionus</title>
+  <meta name="description" content="Codex Lionus — rendered with PDF.js" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <main class="wrap">
+    <header class="top">
+      <div class="kicker">CODEX LIONUS</div>
+      <div class="sub">— MMXXVI —</div>
+      <div class="meta">
+        <a id="downloadLink" href="#" target="_blank" rel="noopener">Open PDF</a>
+      </div>
+    </header>
+
+    <section id="status" class="status">Loading…</section>
+    <section id="viewer" class="viewer" aria-label="PDF pages"></section>
+  </main>
+
+  <!-- PDF.js from a CDN (no browser PDF chrome) -->
+  <script type="module" src="./viewer.js"></script>
+</body>
+</html>
