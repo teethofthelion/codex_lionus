@@ -2,7 +2,7 @@
 // Renders a PDF into canvases using PDF.js — no browser PDF UI.
 // Configure the PDF URL below.
 
-const PDF_URL = "https://www.teethofthelion.com/s/CODEX_LIONUS_MMXXVI_v04.pdf";
+const PDF_URL = "./CODEX_LIONUS_MMXXVI_v04.pdf";
 
 // CDN imports (keeps repo tiny)
 import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs";
