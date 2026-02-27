@@ -1,13 +1,9 @@
-// CodexLionusViewer v1.1 (adblock-friendly)
+// CodexLionusViewer v1.2 (local PDF.js, no CDN)
 
 const PDF_URL = "./CODEX_LIONUS_MMXXVI_v04.pdf";
 
-// Use unpkg instead of jsdelivr (often less blocked)
-import * as pdfjsLib from "https://unpkg.com/pdfjs-dist@4.10.38/build/pdf.min.mjs";
-
-// IMPORTANT: set worker as a plain URL (no ?url indirection)
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  "https://unpkg.com/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs";
+import * as pdfjsLib from "./pdf.mjs";
+pdfjsLib.GlobalWorkerOptions.workerSrc = "./pdf.worker.mjs";
 
 const statusEl = document.getElementById("status");
 const viewerEl = document.getElementById("viewer");
@@ -19,7 +15,7 @@ function setStatus(msg){ statusEl.textContent = msg; }
 async function render(){
   try{
     setStatus("Loading Codex…");
-    const pdf = await pdfjsLib.getDocument({ url: PDF_URL, withCredentials:false }).promise;
+    const pdf = await pdfjsLib.getDocument({ url: PDF_URL }).promise;
 
     setStatus(`Rendering ${pdf.numPages} pages…`);
     viewerEl.innerHTML = "";
@@ -31,11 +27,11 @@ async function render(){
       const page = await pdf.getPage(pageNum);
 
       const unscaled = page.getViewport({ scale: 1 });
-      const scale = Math.min(maxWidth, 980) / unscaled.width;
+      const scale = maxWidth / unscaled.width;
       const viewport = page.getViewport({ scale });
 
-      const container = document.createElement("div");
-      container.className = "page";
+      const wrap = document.createElement("div");
+      wrap.className = "page";
 
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d", { alpha:false });
@@ -47,8 +43,8 @@ async function render(){
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      container.appendChild(canvas);
-      viewerEl.appendChild(container);
+      wrap.appendChild(canvas);
+      viewerEl.appendChild(wrap);
 
       await page.render({ canvasContext: ctx, viewport, background:"#ffffff" }).promise;
     }
@@ -56,14 +52,8 @@ async function render(){
     setStatus("");
   }catch(err){
     console.error(err);
-    setStatus("Could not load PDF.js or the PDF. (Adblock/CSP) Try whitelisting the site or use local PDF.js.");
+    setStatus("Load failed. Check file names + module script tag.");
   }
 }
 
 render();
-
-let t=null;
-window.addEventListener("resize", () => {
-  clearTimeout(t);
-  t = setTimeout(render, 250);
-});
