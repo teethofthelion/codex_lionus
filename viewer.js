@@ -1,72 +1,48 @@
-// CodexLionusViewer v1.0
-// Renders a PDF into canvases using PDF.js — no browser PDF UI.
-// Configure the PDF URL below.
+// CodexLionusViewer v1.1 (adblock-friendly)
 
 const PDF_URL = "./CODEX_LIONUS_MMXXVI_v04.pdf";
 
-// CDN imports (keeps repo tiny)
-import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs";
-import pdfjsWorker from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs?url";
+// Use unpkg instead of jsdelivr (often less blocked)
+import * as pdfjsLib from "https://unpkg.com/pdfjs-dist@4.10.38/build/pdf.min.mjs";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+// IMPORTANT: set worker as a plain URL (no ?url indirection)
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://unpkg.com/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs";
 
 const statusEl = document.getElementById("status");
 const viewerEl = document.getElementById("viewer");
 const downloadLink = document.getElementById("downloadLink");
 downloadLink.href = PDF_URL;
 
-function setStatus(msg){
-  if (!statusEl) return;
-  statusEl.textContent = msg;
-}
-
-function makePageContainer(pageNumber){
-  const div = document.createElement("div");
-  div.className = "page";
-  div.setAttribute("data-page", String(pageNumber));
-  return div;
-}
-
-function getScaleForPage(viewport, targetWidth){
-  // Fit to a comfortable max width; keep sharpness by rendering at devicePixelRatio
-  const cssWidth = Math.min(targetWidth, 980);
-  return cssWidth / viewport.width;
-}
+function setStatus(msg){ statusEl.textContent = msg; }
 
 async function render(){
   try{
     setStatus("Loading Codex…");
-    const loadingTask = pdfjsLib.getDocument({
-      url: PDF_URL,
-      // Avoid credential/cookie issues
-      withCredentials: false,
-    });
-    const pdf = await loadingTask.promise;
+    const pdf = await pdfjsLib.getDocument({ url: PDF_URL, withCredentials:false }).promise;
 
     setStatus(`Rendering ${pdf.numPages} pages…`);
-
-    // Clear any old pages
     viewerEl.innerHTML = "";
 
     const maxWidth = Math.min(window.innerWidth - 48, 980);
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
 
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++){
       const page = await pdf.getPage(pageNum);
 
       const unscaled = page.getViewport({ scale: 1 });
-      const scale = getScaleForPage(unscaled, maxWidth);
-
+      const scale = Math.min(maxWidth, 980) / unscaled.width;
       const viewport = page.getViewport({ scale });
 
-      const container = makePageContainer(pageNum);
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d", { alpha: false });
+      const container = document.createElement("div");
+      container.className = "page";
 
-      // Render at DPR for crisp text
-      const dpr = Math.max(1, window.devicePixelRatio || 1);
-      canvas.width = Math.floor(viewport.width * dpr);
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d", { alpha:false });
+
+      canvas.width  = Math.floor(viewport.width * dpr);
       canvas.height = Math.floor(viewport.height * dpr);
-      canvas.style.width = `${Math.floor(viewport.width)}px`;
+      canvas.style.width  = `${Math.floor(viewport.width)}px`;
       canvas.style.height = `${Math.floor(viewport.height)}px`;
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -74,25 +50,20 @@ async function render(){
       container.appendChild(canvas);
       viewerEl.appendChild(container);
 
-      await page.render({
-        canvasContext: ctx,
-        viewport,
-        background: "#ffffff",
-      }).promise;
+      await page.render({ canvasContext: ctx, viewport, background:"#ffffff" }).promise;
     }
 
     setStatus("");
   }catch(err){
     console.error(err);
-    setStatus("Could not load the PDF. Check that the PDF URL is public, then refresh.");
+    setStatus("Could not load PDF.js or the PDF. (Adblock/CSP) Try whitelisting the site or use local PDF.js.");
   }
 }
 
 render();
 
-// Re-render on resize (debounced)
-let t = null;
+let t=null;
 window.addEventListener("resize", () => {
-  if (t) clearTimeout(t);
-  t = setTimeout(() => render(), 250);
+  clearTimeout(t);
+  t = setTimeout(render, 250);
 });
